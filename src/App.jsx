@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 
 // ============================================================
-// STATIC DATA — Teams and Staff loaded from Supabase
+// STATIC DATA
 // ============================================================
 const CRITERIA_OPTIONS = [
   "Job Expertise",
@@ -125,14 +125,12 @@ const Spinner = () => (
 );
 
 // ============================================================
-// LOGIN SCREEN — Real Supabase Auth
+// LOGIN SCREEN
 // ============================================================
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState("login"); // login | signup
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
   const handleLogin = async () => {
@@ -140,15 +138,6 @@ const LoginScreen = () => {
     setLoading(true); setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError(error.message);
-    setLoading(false);
-  };
-
-  const handleSignup = async () => {
-    if (!email || !password) { setError("Please enter email and password"); return; }
-    setLoading(true); setError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setError(error.message);
-    else setMessage("Check your email for a confirmation link!");
     setLoading(false);
   };
 
@@ -165,55 +154,124 @@ const LoginScreen = () => {
       </div>
 
       <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ display: "flex", gap: "4px", marginBottom: "24px", background: colors.light, borderRadius: "8px", padding: "4px" }}>
-          {["login", "signup"].map(m => (
-            <button key={m} onClick={() => { setMode(m); setError(null); setMessage(null); }} style={{
-              flex: 1, padding: "8px", border: "none", borderRadius: "6px",
-              background: mode === m ? colors.sj : "transparent",
-              color: mode === m ? "white" : colors.muted,
-              fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", cursor: "pointer",
-            }}>{m === "login" ? "Sign In" : "Create Account"}</button>
-          ))}
-        </div>
-
         {error && (
           <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
             <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {error}</p>
           </div>
         )}
 
-        {message && (
-          <div style={{ background: colors.recognitionBg, border: "1px solid #A5D6A7", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
-            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.recognition, margin: 0 }}>✅ {message}</p>
-          </div>
-        )}
-
         <div style={{ marginBottom: "14px" }}>
           <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Email</label>
           <input type="email" placeholder="name@sanjoseca.gov" value={email} onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignup())}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
             style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
         </div>
 
         <div style={{ marginBottom: "24px" }}>
           <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Password</label>
           <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignup())}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
             style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
         </div>
 
-        <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading} style={{
+        <button onClick={handleLogin} disabled={loading} style={{
           width: "100%", background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
           color: loading ? colors.muted : "white", border: "none", padding: "13px",
           borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold",
           cursor: loading ? "default" : "pointer",
         }}>
-          {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+          {loading ? "Please wait..." : "Sign In"}
         </button>
 
         <p style={{ fontFamily: fontSans, fontSize: "10px", color: colors.muted, textAlign: "center", marginTop: "16px", marginBottom: 0 }}>
           🔒 Access restricted to invited users only
         </p>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// ONBOARDING SCREEN — for invited users (profile created by DB trigger)
+// ============================================================
+const OnboardingScreen = ({ user, onComplete }) => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSetup = async () => {
+    if (!fullName.trim()) { setError("Please enter your full name"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    setLoading(true); setError(null);
+
+    // Profile already exists (created by DB trigger on invite) — just update the name
+    const { error: nameError } = await supabase
+      .from("profiles")
+      .update({ name: fullName })
+      .eq("id", user.id);
+
+    if (nameError) { setError(nameError.message); setLoading(false); return; }
+
+    // Set their password
+    const { error: pwError } = await supabase.auth.updateUser({ password });
+    if (pwError) { setError(pwError.message); setLoading(false); return; }
+
+    onComplete();
+  };
+
+  const meta = user.user_metadata;
+  const assignedRole = meta?.role || "supervisor";
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(160deg, ${colors.sjDark} 0%, ${colors.sj} 40%, ${colors.teal} 100%)`,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px"
+    }}>
+      <div style={{ textAlign: "center", marginBottom: "28px" }}>
+        <div style={{ width: "64px", height: "64px", background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", margin: "0 auto 14px" }}>🏛️</div>
+        <h1 style={{ color: "white", fontFamily: font, fontSize: "20px", margin: "0 0 6px" }}>Welcome to the PRNS System</h1>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>
+          You've been invited as a <strong style={{ color: "white", textTransform: "capitalize" }}>{assignedRole}</strong>. Let's finish setting up your account.
+        </p>
+      </div>
+
+      <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        {error && (
+          <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {error}</p>
+          </div>
+        )}
+
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Full Name</label>
+          <input type="text" placeholder="First Last" value={fullName} onChange={e => setFullName(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Create Password</label>
+          <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Confirm Password</label>
+          <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSetup()}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <button onClick={handleSetup} disabled={loading} style={{
+          width: "100%", background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
+          color: loading ? colors.muted : "white", border: "none", padding: "13px",
+          borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: loading ? "default" : "pointer",
+        }}>
+          {loading ? "Setting up..." : "Complete Setup →"}
+        </button>
       </div>
     </div>
   );
@@ -272,11 +330,7 @@ const SupervisorView = ({ profile, teams, staff }) => {
       description: form.description,
     }).select(`*, staff(name, team:teams(name))`).single();
 
-    if (error) {
-      alert("Error submitting: " + error.message);
-      setLoading(false);
-      return;
-    }
+    if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
     setSubmitted(data);
     setLoading(false);
   };
@@ -329,7 +383,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             Performance Observation Form
           </h3>
 
-          {/* Date */}
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>
               Observation Date: <span style={{ color: colors.danger }}>*</span>
@@ -340,7 +393,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             }} />
           </div>
 
-          {/* Team Toggle */}
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "8px" }}>
               Select Staff Observed: <span style={{ color: colors.danger }}>*</span>
@@ -375,7 +427,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             {errors.staffId && <p style={{ color: colors.danger, fontSize: "11px", margin: "4px 0 0", fontFamily: fontSans }}>{errors.staffId}</p>}
           </div>
 
-          {/* Location */}
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>
               Location: <span style={{ color: colors.danger }}>*</span>
@@ -386,7 +437,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             }} />
           </div>
 
-          {/* Criteria */}
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "8px" }}>
               Criteria (optional):
@@ -401,7 +451,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             </div>
           </div>
 
-          {/* Assessment */}
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "8px" }}>
               Assessment: <span style={{ color: colors.danger }}>*</span>
@@ -417,7 +466,6 @@ const SupervisorView = ({ profile, teams, staff }) => {
             {errors.assessment && <p style={{ color: colors.danger, fontSize: "11px", margin: "4px 0 0", fontFamily: fontSans }}>{errors.assessment}</p>}
           </div>
 
-          {/* Description */}
           <div style={{ marginBottom: "24px" }}>
             <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>
               Description: <span style={{ color: colors.danger }}>*</span>
@@ -578,9 +626,9 @@ const AdminView = ({ profile, teams, staff }) => {
   const handleInvite = async () => {
     if (!inviteForm.email) return;
     setInviteLoading(true);
-    
+
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
       {
@@ -597,9 +645,9 @@ const AdminView = ({ profile, teams, staff }) => {
         }),
       }
     );
-  
+
     const result = await response.json();
-    
+
     if (result.error) {
       alert("Error sending invite: " + result.error);
     } else {
@@ -699,7 +747,7 @@ const AdminView = ({ profile, teams, staff }) => {
           <div style={{ background: "white", borderRadius: "12px", padding: "28px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", maxWidth: "480px" }}>
             <h3 style={{ fontFamily: font, color: colors.text, margin: "0 0 6px" }}>Send Invitation</h3>
             <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted, marginBottom: "24px" }}>
-              The recipient will receive a secure link to create their account.
+              The recipient will receive a secure link to set up their account.
             </p>
             {inviteSent ? (
               <div style={{ background: colors.recognitionBg, border: `1px solid #A5D6A7`, borderRadius: "10px", padding: "20px", textAlign: "center" }}>
@@ -736,87 +784,9 @@ const AdminView = ({ profile, teams, staff }) => {
     </div>
   );
 };
-const OnboardingScreen = ({ user, onComplete }) => {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  const handleSetup = async () => {
-    if (!fullName.trim()) { setError("Please enter your name"); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
-    if (password !== confirm) { setError("Passwords do not match"); return; }
-    setLoading(true); setError(null);
-
-    // Set their password
-    const { error: pwError } = await supabase.auth.updateUser({ password });
-    if (pwError) { setError(pwError.message); setLoading(false); return; }
-
-    // Create their profile using metadata from the invite
-    const meta = user.user_metadata;
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: user.id,
-      name: fullName,
-      role: meta.role || "supervisor",
-      team_id: meta.team_id || null,
-    });
-
-    if (profileError) { setError(profileError.message); setLoading(false); return; }
-    onComplete();
-  };
-
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: `linear-gradient(160deg, ${colors.sjDark} 0%, ${colors.sj} 40%, ${colors.teal} 100%)`,
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px"
-    }}>
-      <div style={{ textAlign: "center", marginBottom: "28px" }}>
-        <div style={{ width: "64px", height: "64px", background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", margin: "0 auto 14px" }}>🏛️</div>
-        <h1 style={{ color: "white", fontFamily: font, fontSize: "20px", margin: "0 0 6px" }}>Welcome to the PRNS System</h1>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>Let's get your account set up</p>
-      </div>
-
-      <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        {error && (
-          <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
-            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {error}</p>
-          </div>
-        )}
-
-        <div style={{ marginBottom: "14px" }}>
-          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Full Name</label>
-          <input type="text" placeholder="First Last" value={fullName} onChange={e => setFullName(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
-        </div>
-
-        <div style={{ marginBottom: "14px" }}>
-          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Create Password</label>
-          <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
-        </div>
-
-        <div style={{ marginBottom: "24px" }}>
-          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Confirm Password</label>
-          <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSetup()}
-            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
-        </div>
-
-        <button onClick={handleSetup} disabled={loading} style={{
-          width: "100%", background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
-          color: loading ? colors.muted : "white", border: "none", padding: "13px",
-          borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: loading ? "default" : "pointer",
-        }}>
-          {loading ? "Setting up..." : "Complete Setup →"}
-        </button>
-      </div>
-    </div>
-  );
-};
 // ============================================================
-// APP ROOT — Real Supabase Auth
+// APP ROOT
 // ============================================================
 export default function App() {
   const [session, setSession] = useState(null);
@@ -834,6 +804,17 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // USER_UPDATED fires when password is set during onboarding — skip to avoid race condition
+      if (event === "USER_UPDATED") return;
+
+      if (event === "SIGNED_OUT") {
+        setProfile(null);
+        setSession(null);
+        setIsNewUser(false);
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
       if (session) loadUserData(session.user);
       else { setProfile(null); setLoading(false); }
@@ -850,7 +831,8 @@ export default function App() {
       supabase.from("staff").select("*").order("name"),
     ]);
 
-    if (!profileRes.data) {
+    // Trigger creates profile on invite, but name will be empty until onboarding completes
+    if (!profileRes.data || !profileRes.data.name) {
       setIsNewUser(true);
     } else {
       setProfile(profileRes.data);
@@ -862,7 +844,6 @@ export default function App() {
     setLoading(false);
   };
 
-  // ✅ handleLogout lives HERE — outside loadUserData
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -873,7 +854,7 @@ export default function App() {
   if (loading) return <Spinner />;
   if (!session) return <LoginScreen />;
 
-  if (isNewUser && session) return (
+  if (isNewUser) return (
     <OnboardingScreen
       user={session.user}
       onComplete={() => loadUserData(session.user)}
