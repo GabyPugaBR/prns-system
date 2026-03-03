@@ -578,12 +578,37 @@ const AdminView = ({ profile, teams, staff }) => {
   const handleInvite = async () => {
     if (!inviteForm.email) return;
     setInviteLoading(true);
-    const { error } = await supabase.auth.admin.inviteUserByEmail(inviteForm.email, {
-      data: { role: inviteForm.role, team_id: inviteForm.teamId }
-    });
-    if (error) alert("Error sending invite: " + error.message);
-    else setInviteSent(true);
-    setTimeout(() => { setInviteSent(false); setInviteForm({ email: "", role: "supervisor", teamId: teams[0]?.id || "" }); }, 3000);
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          email: inviteForm.email,
+          role: inviteForm.role,
+          team_id: inviteForm.teamId,
+        }),
+      }
+    );
+  
+    const result = await response.json();
+    
+    if (result.error) {
+      alert("Error sending invite: " + result.error);
+    } else {
+      setInviteSent(true);
+      setTimeout(() => {
+        setInviteSent(false);
+        setInviteForm({ email: "", role: "supervisor", teamId: teams[0]?.id || "" });
+      }, 3000);
+    }
     setInviteLoading(false);
   };
 
