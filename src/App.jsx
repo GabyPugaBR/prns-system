@@ -1,47 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 
 // ============================================================
-// DATA LAYER — Replace with Supabase calls in production
+// STATIC DATA — Teams and Staff loaded from Supabase
 // ============================================================
-const TEAMS = [
-  "Mitigating Impacts",
-  "Encampment Routes",
-  "Waterway Abatements",
-  "On Land Abatements",
-];
-
-const STAFF = [
-  { id: 1, name: "Aundrea Vargas", team: "Mitigating Impacts" },
-  { id: 2, name: "Meghan Ferguson", team: "Mitigating Impacts" },
-  { id: 3, name: "Kevin Montoya", team: "Mitigating Impacts" },
-  { id: 4, name: "Jorge Pantoja", team: "Mitigating Impacts" },
-  { id: 5, name: "Matthew Jimenez", team: "Mitigating Impacts" },
-  { id: 6, name: "Ricardo Eledesma", team: "Mitigating Impacts" },
-  { id: 7, name: "Jennifer Acevedo", team: "Mitigating Impacts" },
-  { id: 8, name: "Sin Ses", team: "Mitigating Impacts" },
-  { id: 9, name: "Jorge Ramirez", team: "Encampment Routes" },
-  { id: 10, name: "Daniel Gomez Rodriguez", team: "Encampment Routes" },
-  { id: 11, name: "Gabriel Tapia", team: "Encampment Routes" },
-  { id: 12, name: "Marco Washington", team: "Encampment Routes" },
-  { id: 13, name: "Jorge Pantoja", team: "Waterway Abatements" },
-  { id: 14, name: "Kevin Montoya", team: "Waterway Abatements" },
-  { id: 15, name: "Meghan Ferguson", team: "Waterway Abatements" },
-  { id: 16, name: "Ricardo Eledesma", team: "Waterway Abatements" },
-  { id: 17, name: "Jennifer Acevedo", team: "Waterway Abatements" },
-  { id: 18, name: "Jesse Chavez", team: "On Land Abatements" },
-  { id: 19, name: "Matthew Jimenez", team: "On Land Abatements" },
-  { id: 20, name: "Ricardo Eledesma", team: "On Land Abatements" },
-  { id: 21, name: "Sin Ses", team: "On Land Abatements" },
-];
-
-const DEMO_USERS = [
-  { id: "admin1", name: "Admin User", role: "admin", email: "admin@sanjoseca.gov", team: null, teamsAccess: TEAMS },
-  { id: "sup1", name: "Gaby Rollins", role: "supervisor", email: "gaby@sanjoseca.gov", team: "Mitigating Impacts" },
-  { id: "sup2", name: "Carlos Rivera", role: "supervisor", email: "carlos@sanjoseca.gov", team: "Encampment Routes" },
-  { id: "mgr1", name: "Diana Lopez", role: "manager", email: "diana@sanjoseca.gov", team: null, teamsAccess: ["Mitigating Impacts", "Encampment Routes"] },
-  { id: "mgr2", name: "Robert Kim", role: "manager", email: "robert@sanjoseca.gov", team: null, teamsAccess: ["Waterway Abatements", "On Land Abatements"] },
-];
-
 const CRITERIA_OPTIONS = [
   "Job Expertise",
   "Customer Service",
@@ -51,13 +13,6 @@ const CRITERIA_OPTIONS = [
   "Supervisory & Leadership Skills",
   "Judgement / Problem Solving",
   "Other",
-];
-
-const INITIAL_OBSERVATIONS = [
-  { id: 1, supervisorName: "Gaby Rollins", supervisorTeam: "Mitigating Impacts", staffName: "Aundrea Vargas", staffTeam: "Mitigating Impacts", date: "2026-02-15", location: "Kirk Park", criteria: ["Job Expertise", "Reliability"], assessment: "Worthy of Recognition", description: "Demonstrated exceptional knowledge during site cleanup. Coordinated team effectively under pressure.", submittedAt: "2026-02-15T10:30:00" },
-  { id: 2, supervisorName: "Gaby Rollins", supervisorTeam: "Mitigating Impacts", staffName: "Kevin Montoya", staffTeam: "Mitigating Impacts", date: "2026-02-18", location: "Guadalupe River", criteria: ["Communication Skills", "Teamwork / Interpersonal Skills"], assessment: "Growth Opportunity", description: "Needs improvement in communicating task updates to the team in real time.", submittedAt: "2026-02-18T14:15:00" },
-  { id: 3, supervisorName: "Carlos Rivera", supervisorTeam: "Encampment Routes", staffName: "Gabriel Tapia", staffTeam: "Encampment Routes", date: "2026-02-20", location: "Story Road", criteria: ["Customer Service", "Reliability"], assessment: "Worthy of Recognition", description: "Outstanding community interaction during route clearance. Received positive feedback from residents.", submittedAt: "2026-02-20T09:00:00" },
-  { id: 4, supervisorName: "Carlos Rivera", supervisorTeam: "Encampment Routes", staffName: "Marco Washington", staffTeam: "Encampment Routes", date: "2026-02-22", location: "Tully Road", criteria: ["Job Expertise"], assessment: "Worthy of Recognition", description: "Showed strong technical skills in operating equipment safely and efficiently.", submittedAt: "2026-02-22T11:45:00" },
 ];
 
 // ============================================================
@@ -116,10 +71,9 @@ const TeamBadge = ({ team }) => {
   );
 };
 
-const SJHeader = ({ user, onLogout }) => (
+const SJHeader = ({ user, profile, onLogout }) => (
   <div style={{
     background: `linear-gradient(135deg, ${colors.sjDark} 0%, ${colors.sj} 100%)`,
-    padding: "0",
     boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
   }}>
     <div style={{
@@ -142,12 +96,12 @@ const SJHeader = ({ user, onLogout }) => (
           </div>
         </div>
       </div>
-      {user && (
+      {profile && (
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ textAlign: "right" }}>
-            <div style={{ color: "white", fontFamily: fontSans, fontSize: "12px", fontWeight: "bold" }}>{user.name}</div>
+            <div style={{ color: "white", fontFamily: fontSans, fontSize: "12px", fontWeight: "bold" }}>{profile.name}</div>
             <div style={{ color: "rgba(255,255,255,0.65)", fontFamily: fontSans, fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>
-              {user.role} {user.team ? `· ${user.team}` : ""}
+              {profile.role}
             </div>
           </div>
           <button onClick={onLogout} style={{
@@ -161,61 +115,104 @@ const SJHeader = ({ user, onLogout }) => (
   </div>
 );
 
+const Spinner = () => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: colors.light }}>
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: "32px", marginBottom: "12px" }}>⏳</div>
+      <p style={{ fontFamily: fontSans, color: colors.muted, fontSize: "14px" }}>Loading...</p>
+    </div>
+  </div>
+);
+
 // ============================================================
-// LOGIN SCREEN
+// LOGIN SCREEN — Real Supabase Auth
 // ============================================================
-const LoginScreen = ({ onLogin }) => {
-  const [selected, setSelected] = useState(null);
+const LoginScreen = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState("login"); // login | signup
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleLogin = async () => {
+    if (!email || !password) { setError("Please enter email and password"); return; }
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
+  const handleSignup = async () => {
+    if (!email || !password) { setError("Please enter email and password"); return; }
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setError(error.message);
+    else setMessage("Check your email for a confirmation link!");
+    setLoading(false);
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${colors.sjDark} 0%, ${colors.sj} 40%, ${colors.teal} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(160deg, ${colors.sjDark} 0%, ${colors.sj} 40%, ${colors.teal} 100%)`,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px"
+    }}>
       <div style={{ textAlign: "center", marginBottom: "32px" }}>
         <div style={{ width: "72px", height: "72px", background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "32px", margin: "0 auto 16px" }}>🏛️</div>
-        <h1 style={{ color: "white", fontFamily: font, fontSize: "22px", margin: "0 0 6px", letterSpacing: "0.5px" }}>Community Services Division</h1>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>Performance Observation System · Demo Login</p>
+        <h1 style={{ color: "white", fontFamily: font, fontSize: "22px", margin: "0 0 6px" }}>Community Services Division</h1>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>Performance Observation System</p>
       </div>
 
-      <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted, textAlign: "center", marginBottom: "20px", textTransform: "uppercase", letterSpacing: "1px" }}>Select a demo account</p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
-          {DEMO_USERS.map(u => (
-            <button key={u.id} onClick={() => setSelected(u)} style={{
-              border: `2px solid ${selected?.id === u.id ? colors.sj : colors.border}`,
-              background: selected?.id === u.id ? "#EEF5FB" : "white",
-              borderRadius: "10px", padding: "12px 16px",
-              cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-              display: "flex", alignItems: "center", gap: "12px",
-            }}>
-              <div style={{
-                width: "36px", height: "36px", borderRadius: "50%", flexShrink: 0,
-                background: u.role === "admin" ? colors.gold : u.role === "supervisor" ? colors.sj : colors.teal,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "white", fontSize: "16px",
-              }}>
-                {u.role === "admin" ? "⚙️" : u.role === "supervisor" ? "📋" : "📊"}
-              </div>
-              <div>
-                <div style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{u.name}</div>
-                <div style={{ fontFamily: fontSans, fontSize: "11px", color: colors.muted }}>
-                  {u.role.toUpperCase()} {u.team ? `· ${u.team}` : u.teamsAccess ? `· ${u.teamsAccess.length} teams` : ""}
-                </div>
-              </div>
-            </button>
+      <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", gap: "4px", marginBottom: "24px", background: colors.light, borderRadius: "8px", padding: "4px" }}>
+          {["login", "signup"].map(m => (
+            <button key={m} onClick={() => { setMode(m); setError(null); setMessage(null); }} style={{
+              flex: 1, padding: "8px", border: "none", borderRadius: "6px",
+              background: mode === m ? colors.sj : "transparent",
+              color: mode === m ? "white" : colors.muted,
+              fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", cursor: "pointer",
+            }}>{m === "login" ? "Sign In" : "Create Account"}</button>
           ))}
         </div>
 
-        <button onClick={() => selected && onLogin(selected)} style={{
-          width: "100%", background: selected ? `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})` : colors.border,
-          color: selected ? "white" : colors.muted, border: "none", padding: "14px",
-          borderRadius: "10px", fontFamily: fontSans, fontSize: "14px", fontWeight: "bold",
-          cursor: selected ? "pointer" : "default", letterSpacing: "0.5px",
+        {error && (
+          <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {error}</p>
+          </div>
+        )}
+
+        {message && (
+          <div style={{ background: colors.recognitionBg, border: "1px solid #A5D6A7", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.recognition, margin: 0 }}>✅ {message}</p>
+          </div>
+        )}
+
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Email</label>
+          <input type="email" placeholder="name@sanjoseca.gov" value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignup())}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Password</label>
+          <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignup())}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading} style={{
+          width: "100%", background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
+          color: loading ? colors.muted : "white", border: "none", padding: "13px",
+          borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold",
+          cursor: loading ? "default" : "pointer",
         }}>
-          {selected ? `Sign In as ${selected.name}` : "Select an Account"}
+          {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
         </button>
 
         <p style={{ fontFamily: fontSans, fontSize: "10px", color: colors.muted, textAlign: "center", marginTop: "16px", marginBottom: 0 }}>
-          🔒 In production: invite-only email authentication via Supabase
+          🔒 Access restricted to invited users only
         </p>
       </div>
     </div>
@@ -225,9 +222,9 @@ const LoginScreen = ({ onLogin }) => {
 // ============================================================
 // SUPERVISOR INTERFACE
 // ============================================================
-const SupervisorView = ({ user, observations, onSubmit }) => {
+const SupervisorView = ({ profile, teams, staff }) => {
   const [teamMode, setTeamMode] = useState("my");
-  const [selectedTeam, setSelectedTeam] = useState(user.team);
+  const [selectedTeamId, setSelectedTeamId] = useState(profile.team_id);
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     staffId: "",
@@ -238,8 +235,11 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
   });
   const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  const availableStaff = STAFF.filter(s => s.team === selectedTeam);
+  const myTeam = teams.find(t => t.id === profile.team_id);
+  const availableStaff = staff.filter(s => s.team_id === selectedTeamId);
+  const otherTeams = teams.filter(t => t.id !== profile.team_id);
 
   const toggleCriteria = (c) => {
     setForm(f => ({
@@ -259,24 +259,26 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
-    const staff = STAFF.find(s => s.id === parseInt(form.staffId));
-    const obs = {
-      id: Date.now(),
-      supervisorName: user.name,
-      supervisorTeam: user.team,
-      staffName: staff.name,
-      staffTeam: staff.team,
-      date: form.date,
+    setLoading(true);
+    const { data, error } = await supabase.from("observations").insert({
+      supervisor_id: profile.id,
+      staff_id: form.staffId,
+      observation_date: form.date,
       location: form.location,
       criteria: form.criteria,
       assessment: form.assessment,
       description: form.description,
-      submittedAt: new Date().toISOString(),
-    };
-    onSubmit(obs);
-    setSubmitted(obs);
+    }).select(`*, staff(name, team:teams(name))`).single();
+
+    if (error) {
+      alert("Error submitting: " + error.message);
+      setLoading(false);
+      return;
+    }
+    setSubmitted(data);
+    setLoading(false);
   };
 
   const handleClear = () => {
@@ -296,25 +298,17 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
               Your observation has been recorded. You cannot edit this submission.
             </p>
             <div style={{ background: colors.light, borderRadius: "10px", padding: "16px", textAlign: "left", marginBottom: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{submitted.staffName}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{submitted.staff?.name}</span>
                 <Badge type={submitted.assessment} />
               </div>
-              <div style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted }}>📅 {submitted.date} · 📍 {submitted.location}</div>
-              {submitted.criteria.length > 0 && (
-                <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                  {submitted.criteria.map(c => (
-                    <span key={c} style={{ background: "#EEF5FB", color: colors.sj, fontSize: "10px", padding: "2px 7px", borderRadius: "8px", fontFamily: fontSans }}>{c}</span>
-                  ))}
-                </div>
-              )}
+              <div style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted }}>📅 {submitted.observation_date} · 📍 {submitted.location}</div>
               <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.text, marginTop: "8px", marginBottom: 0 }}>{submitted.description}</p>
             </div>
             <button onClick={handleClear} style={{
               background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
               color: "white", border: "none", padding: "12px 28px",
-              borderRadius: "8px", fontFamily: fontSans, fontSize: "13px",
-              fontWeight: "bold", cursor: "pointer",
+              borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: "pointer",
             }}>Submit Another Observation</button>
           </div>
         </div>
@@ -325,10 +319,9 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
   return (
     <div style={{ minHeight: "100vh", background: colors.light }}>
       <div style={{ maxWidth: "520px", margin: "0 auto", padding: "24px 16px" }}>
-        {/* Welcome Banner */}
         <div style={{ background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, borderRadius: "12px", padding: "20px 24px", marginBottom: "20px", textAlign: "center" }}>
-          <h2 style={{ color: "white", fontFamily: font, margin: "0 0 4px", fontSize: "18px" }}>Welcome, {user.name}!</h2>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>{user.team}</p>
+          <h2 style={{ color: "white", fontFamily: font, margin: "0 0 4px", fontSize: "18px" }}>Welcome, {profile.name}!</h2>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>{myTeam?.name}</p>
         </div>
 
         <div style={{ background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
@@ -345,7 +338,6 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
               width: "100%", padding: "10px 12px", border: `1px solid ${errors.date ? colors.danger : colors.border}`,
               borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box",
             }} />
-            {errors.date && <p style={{ color: colors.danger, fontSize: "11px", margin: "4px 0 0", fontFamily: fontSans }}>{errors.date}</p>}
           </div>
 
           {/* Team Toggle */}
@@ -358,7 +350,7 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
                 <label key={mode} style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: fontSans, fontSize: "13px" }}>
                   <input type="radio" checked={teamMode === mode} onChange={() => {
                     setTeamMode(mode);
-                    setSelectedTeam(mode === "my" ? user.team : TEAMS.find(t => t !== user.team));
+                    setSelectedTeamId(mode === "my" ? profile.team_id : otherTeams[0]?.id);
                     setForm(f => ({ ...f, staffId: "" }));
                   }} />
                   {mode === "my" ? "My Team" : "Another Team"}
@@ -366,11 +358,11 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
               ))}
             </div>
             {teamMode === "other" && (
-              <select value={selectedTeam} onChange={e => { setSelectedTeam(e.target.value); setForm(f => ({ ...f, staffId: "" })); }} style={{
+              <select value={selectedTeamId} onChange={e => { setSelectedTeamId(e.target.value); setForm(f => ({ ...f, staffId: "" })); }} style={{
                 width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`,
                 borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", marginBottom: "8px", boxSizing: "border-box",
               }}>
-                {TEAMS.filter(t => t !== user.team).map(t => <option key={t} value={t}>{t}</option>)}
+                {otherTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             )}
             <select value={form.staffId} onChange={e => setForm(f => ({ ...f, staffId: e.target.value }))} style={{
@@ -392,7 +384,6 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
               width: "100%", padding: "10px 12px", border: `1px solid ${errors.location ? colors.danger : colors.border}`,
               borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box",
             }} />
-            {errors.location && <p style={{ color: colors.danger, fontSize: "11px", margin: "4px 0 0", fontFamily: fontSans }}>{errors.location}</p>}
           </div>
 
           {/* Criteria */}
@@ -402,7 +393,7 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
               {CRITERIA_OPTIONS.map(c => (
-                <label key={c} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", border: `1px solid ${form.criteria.includes(c) ? colors.sj : colors.border}`, borderRadius: "8px", cursor: "pointer", background: form.criteria.includes(c) ? "#EEF5FB" : "white", fontFamily: fontSans, fontSize: "12px", transition: "all 0.1s" }}>
+                <label key={c} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", border: `1px solid ${form.criteria.includes(c) ? colors.sj : colors.border}`, borderRadius: "8px", cursor: "pointer", background: form.criteria.includes(c) ? "#EEF5FB" : "white", fontFamily: fontSans, fontSize: "12px" }}>
                   <input type="checkbox" checked={form.criteria.includes(c)} onChange={() => toggleCriteria(c)} style={{ accentColor: colors.sj }} />
                   {c}
                 </label>
@@ -441,13 +432,12 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
             </div>
           </div>
 
-          {/* Buttons */}
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={handleClear} style={{ flex: 1, background: "white", border: `1px solid ${colors.border}`, color: colors.muted, padding: "12px", borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", cursor: "pointer" }}>
               Clear Form
             </button>
-            <button onClick={handleSubmit} style={{ flex: 2, background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, color: "white", border: "none", padding: "12px", borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: "pointer" }}>
-              Submit Feedback
+            <button onClick={handleSubmit} disabled={loading} style={{ flex: 2, background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, color: loading ? colors.muted : "white", border: "none", padding: "12px", borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: loading ? "default" : "pointer" }}>
+              {loading ? "Submitting..." : "Submit Feedback"}
             </button>
           </div>
         </div>
@@ -459,29 +449,46 @@ const SupervisorView = ({ user, observations, onSubmit }) => {
 // ============================================================
 // MANAGER INTERFACE
 // ============================================================
-const ManagerView = ({ user, observations }) => {
+const ManagerView = ({ profile, teams }) => {
+  const [observations, setObservations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterTeam, setFilterTeam] = useState("all");
   const [filterAssessment, setFilterAssessment] = useState("all");
   const [selected, setSelected] = useState(null);
 
-  const accessible = observations.filter(o => user.teamsAccess.includes(o.staffTeam));
-  const filtered = accessible.filter(o => {
-    if (filterTeam !== "all" && o.staffTeam !== filterTeam) return false;
+  useEffect(() => {
+    const fetchObservations = async () => {
+      const { data, error } = await supabase
+        .from("observations")
+        .select(`*, staff(name, team:teams(name)), supervisor:profiles(name)`)
+        .order("submitted_at", { ascending: false });
+      if (!error) setObservations(data || []);
+      setLoading(false);
+    };
+    fetchObservations();
+  }, []);
+
+  const accessibleTeams = teams.filter(t =>
+    observations.some(o => o.staff?.team?.name === t.name)
+  );
+
+  const filtered = observations.filter(o => {
+    if (filterTeam !== "all" && o.staff?.team?.name !== filterTeam) return false;
     if (filterAssessment !== "all" && o.assessment !== filterAssessment) return false;
     return true;
   });
 
-  const recogCount = accessible.filter(o => o.assessment === "Worthy of Recognition").length;
-  const growthCount = accessible.filter(o => o.assessment === "Growth Opportunity").length;
+  const recogCount = observations.filter(o => o.assessment === "Worthy of Recognition").length;
+  const growthCount = observations.filter(o => o.assessment === "Growth Opportunity").length;
+
+  if (loading) return <Spinner />;
 
   return (
     <div style={{ minHeight: "100vh", background: colors.light }}>
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "24px 16px" }}>
-
-        {/* Stats Row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "20px" }}>
           {[
-            { label: "Total Observations", value: accessible.length, icon: "📋", color: colors.sj },
+            { label: "Total Observations", value: observations.length, icon: "📋", color: colors.sj },
             { label: "Worthy of Recognition", value: recogCount, icon: "⭐", color: colors.recognition },
             { label: "Growth Opportunities", value: growthCount, icon: "📈", color: colors.growth },
           ].map(s => (
@@ -493,12 +500,11 @@ const ManagerView = ({ user, observations }) => {
           ))}
         </div>
 
-        {/* Filters */}
         <div style={{ background: "white", borderRadius: "12px", padding: "16px 20px", marginBottom: "16px", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           <span style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted, fontWeight: "bold" }}>FILTER:</span>
           <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)} style={{ padding: "7px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "12px" }}>
             <option value="all">All Teams</option>
-            {user.teamsAccess.map(t => <option key={t} value={t}>{t}</option>)}
+            {accessibleTeams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
           </select>
           <select value={filterAssessment} onChange={e => setFilterAssessment(e.target.value)} style={{ padding: "7px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "12px" }}>
             <option value="all">All Assessments</option>
@@ -508,42 +514,38 @@ const ManagerView = ({ user, observations }) => {
           <span style={{ fontFamily: fontSans, fontSize: "11px", color: colors.muted, marginLeft: "auto" }}>{filtered.length} records</span>
         </div>
 
-        {/* Table */}
         <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", fontFamily: fontSans, color: colors.muted }}>No observations match your filters</div>
-          ) : (
-            filtered.map((obs, i) => (
-              <div key={obs.id} onClick={() => setSelected(selected?.id === obs.id ? null : obs)} style={{
-                padding: "14px 20px", borderBottom: i < filtered.length - 1 ? `1px solid ${colors.border}` : "none",
-                cursor: "pointer", background: selected?.id === obs.id ? "#EEF5FB" : "white",
-                transition: "background 0.1s",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{obs.staffName}</span>
-                      <TeamBadge team={obs.staffTeam} />
-                    </div>
-                    <div style={{ fontFamily: fontSans, fontSize: "11px", color: colors.muted }}>
-                      📅 {obs.date} · 📍 {obs.location} · Submitted by {obs.supervisorName}
-                    </div>
-                    {selected?.id === obs.id && (
-                      <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.border}` }}>
-                        {obs.criteria.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "8px" }}>
-                            {obs.criteria.map(c => <span key={c} style={{ background: "#EEF5FB", color: colors.sj, fontSize: "10px", padding: "2px 7px", borderRadius: "8px", fontFamily: fontSans }}>{c}</span>)}
-                          </div>
-                        )}
-                        <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.text, margin: 0, lineHeight: 1.6 }}>{obs.description}</p>
-                      </div>
-                    )}
+            <div style={{ padding: "40px", textAlign: "center", fontFamily: fontSans, color: colors.muted }}>No observations found</div>
+          ) : filtered.map((obs, i) => (
+            <div key={obs.id} onClick={() => setSelected(selected?.id === obs.id ? null : obs)} style={{
+              padding: "14px 20px", borderBottom: i < filtered.length - 1 ? `1px solid ${colors.border}` : "none",
+              cursor: "pointer", background: selected?.id === obs.id ? "#EEF5FB" : "white",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{obs.staff?.name}</span>
+                    <TeamBadge team={obs.staff?.team?.name} />
                   </div>
-                  <Badge type={obs.assessment} />
+                  <div style={{ fontFamily: fontSans, fontSize: "11px", color: colors.muted }}>
+                    📅 {obs.observation_date} · 📍 {obs.location} · By {obs.supervisor?.name}
+                  </div>
+                  {selected?.id === obs.id && (
+                    <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.border}` }}>
+                      {obs.criteria?.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "8px" }}>
+                          {obs.criteria.map(c => <span key={c} style={{ background: "#EEF5FB", color: colors.sj, fontSize: "10px", padding: "2px 7px", borderRadius: "8px", fontFamily: fontSans }}>{c}</span>)}
+                        </div>
+                      )}
+                      <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.text, margin: 0, lineHeight: 1.6 }}>{obs.description}</p>
+                    </div>
+                  )}
                 </div>
+                <Badge type={obs.assessment} />
               </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -553,30 +555,50 @@ const ManagerView = ({ user, observations }) => {
 // ============================================================
 // ADMIN INTERFACE
 // ============================================================
-const AdminView = ({ observations, onInvite }) => {
+const AdminView = ({ profile, teams, staff }) => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [inviteForm, setInviteForm] = useState({ email: "", role: "supervisor", team: TEAMS[0] });
+  const [observations, setObservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteForm, setInviteForm] = useState({ email: "", role: "supervisor", teamId: teams[0]?.id || "" });
   const [inviteSent, setInviteSent] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
-  const handleInvite = () => {
+  useEffect(() => {
+    const fetchAll = async () => {
+      const { data } = await supabase
+        .from("observations")
+        .select(`*, staff(name, team:teams(name)), supervisor:profiles(name)`)
+        .order("submitted_at", { ascending: false });
+      setObservations(data || []);
+      setLoading(false);
+    };
+    fetchAll();
+  }, []);
+
+  const handleInvite = async () => {
     if (!inviteForm.email) return;
-    onInvite(inviteForm);
-    setInviteSent(true);
-    setTimeout(() => { setInviteSent(false); setInviteForm({ email: "", role: "supervisor", team: TEAMS[0] }); }, 3000);
+    setInviteLoading(true);
+    const { error } = await supabase.auth.admin.inviteUserByEmail(inviteForm.email, {
+      data: { role: inviteForm.role, team_id: inviteForm.teamId }
+    });
+    if (error) alert("Error sending invite: " + error.message);
+    else setInviteSent(true);
+    setTimeout(() => { setInviteSent(false); setInviteForm({ email: "", role: "supervisor", teamId: teams[0]?.id || "" }); }, 3000);
+    setInviteLoading(false);
   };
 
-  const teamStats = TEAMS.map(t => ({
-    team: t,
-    count: observations.filter(o => o.staffTeam === t).length,
-    recognition: observations.filter(o => o.staffTeam === t && o.assessment === "Worthy of Recognition").length,
-    growth: observations.filter(o => o.staffTeam === t && o.assessment === "Growth Opportunity").length,
+  const teamStats = teams.map(t => ({
+    team: t.name,
+    count: observations.filter(o => o.staff?.team?.name === t.name).length,
+    recognition: observations.filter(o => o.staff?.team?.name === t.name && o.assessment === "Worthy of Recognition").length,
+    growth: observations.filter(o => o.staff?.team?.name === t.name && o.assessment === "Growth Opportunity").length,
   }));
+
+  if (loading) return <Spinner />;
 
   return (
     <div style={{ minHeight: "100vh", background: colors.light }}>
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "24px 16px" }}>
-
-        {/* Tabs */}
         <div style={{ display: "flex", gap: "4px", background: "white", borderRadius: "12px", padding: "4px", marginBottom: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           {[["overview", "📊 Overview"], ["observations", "📋 All Observations"], ["invite", "✉️ Send Invite"]].map(([id, label]) => (
             <button key={id} onClick={() => setActiveTab(id)} style={{
@@ -588,7 +610,6 @@ const AdminView = ({ observations, onInvite }) => {
           ))}
         </div>
 
-        {/* Overview Tab */}
         {activeTab === "overview" && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", marginBottom: "20px" }}>
@@ -596,7 +617,7 @@ const AdminView = ({ observations, onInvite }) => {
                 { label: "Total Observations", value: observations.length, icon: "📋", color: colors.sj },
                 { label: "Worthy of Recognition", value: observations.filter(o => o.assessment === "Worthy of Recognition").length, icon: "⭐", color: colors.recognition },
                 { label: "Growth Opportunities", value: observations.filter(o => o.assessment === "Growth Opportunity").length, icon: "📈", color: colors.growth },
-                { label: "Active Teams", value: TEAMS.length, icon: "👥", color: colors.teal },
+                { label: "Active Teams", value: teams.length, icon: "👥", color: colors.teal },
               ].map(s => (
                 <div key={s.label} style={{ background: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", textAlign: "center" }}>
                   <div style={{ fontSize: "28px", marginBottom: "4px" }}>{s.icon}</div>
@@ -605,7 +626,6 @@ const AdminView = ({ observations, onInvite }) => {
                 </div>
               ))}
             </div>
-
             <div style={{ background: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <h3 style={{ fontFamily: font, color: colors.text, margin: "0 0 16px", fontSize: "15px" }}>Submissions by Team</h3>
               {teamStats.map(t => (
@@ -618,7 +638,7 @@ const AdminView = ({ observations, onInvite }) => {
                     <span style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text }}>{t.count}</span>
                   </div>
                   <div style={{ background: colors.border, borderRadius: "4px", height: "8px", overflow: "hidden" }}>
-                    <div style={{ width: `${observations.length ? (t.count / observations.length) * 100 : 0}%`, background: `linear-gradient(90deg, ${colors.sj}, ${colors.teal})`, height: "100%", borderRadius: "4px", transition: "width 0.5s" }} />
+                    <div style={{ width: `${observations.length ? (t.count / observations.length) * 100 : 0}%`, background: `linear-gradient(90deg, ${colors.sj}, ${colors.teal})`, height: "100%", borderRadius: "4px" }} />
                   </div>
                 </div>
               ))}
@@ -626,19 +646,20 @@ const AdminView = ({ observations, onInvite }) => {
           </div>
         )}
 
-        {/* All Observations Tab */}
         {activeTab === "observations" && (
           <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-            {observations.map((obs, i) => (
+            {observations.length === 0 ? (
+              <div style={{ padding: "40px", textAlign: "center", fontFamily: fontSans, color: colors.muted }}>No observations yet</div>
+            ) : observations.map((obs, i) => (
               <div key={obs.id} style={{ padding: "14px 20px", borderBottom: i < observations.length - 1 ? `1px solid ${colors.border}` : "none" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{obs.staffName}</span>
-                      <TeamBadge team={obs.staffTeam} />
+                      <span style={{ fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", color: colors.text }}>{obs.staff?.name}</span>
+                      <TeamBadge team={obs.staff?.team?.name} />
                     </div>
                     <div style={{ fontFamily: fontSans, fontSize: "11px", color: colors.muted }}>
-                      📅 {obs.date} · 📍 {obs.location} · By {obs.supervisorName} ({obs.supervisorTeam})
+                      📅 {obs.observation_date} · 📍 {obs.location} · By {obs.supervisor?.name}
                     </div>
                     <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.text, margin: "6px 0 0", lineHeight: 1.5 }}>{obs.description}</p>
                   </div>
@@ -649,23 +670,21 @@ const AdminView = ({ observations, onInvite }) => {
           </div>
         )}
 
-        {/* Invite Tab */}
         {activeTab === "invite" && (
           <div style={{ background: "white", borderRadius: "12px", padding: "28px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", maxWidth: "480px" }}>
             <h3 style={{ fontFamily: font, color: colors.text, margin: "0 0 6px" }}>Send Invitation</h3>
             <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.muted, marginBottom: "24px" }}>
-              The recipient will receive a secure link to create their account. Access is limited to invited users only.
+              The recipient will receive a secure link to create their account.
             </p>
-
             {inviteSent ? (
-              <div style={{ background: colors.recognitionBg, border: `1px solid ${colors.recognition}`, borderRadius: "10px", padding: "20px", textAlign: "center" }}>
+              <div style={{ background: colors.recognitionBg, border: `1px solid #A5D6A7`, borderRadius: "10px", padding: "20px", textAlign: "center" }}>
                 <div style={{ fontSize: "32px", marginBottom: "8px" }}>✉️</div>
-                <p style={{ fontFamily: fontSans, fontSize: "13px", color: colors.recognition, fontWeight: "bold", margin: 0 }}>Invitation sent successfully!</p>
+                <p style={{ fontFamily: fontSans, fontSize: "13px", color: colors.recognition, fontWeight: "bold", margin: 0 }}>Invitation sent!</p>
               </div>
             ) : (
               <>
                 <div style={{ marginBottom: "16px" }}>
-                  <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Email Address</label>
+                  <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Email</label>
                   <input type="email" placeholder="name@sanjoseca.gov" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
                 </div>
                 <div style={{ marginBottom: "16px" }}>
@@ -677,12 +696,12 @@ const AdminView = ({ observations, onInvite }) => {
                 </div>
                 <div style={{ marginBottom: "24px" }}>
                   <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Assign Team</label>
-                  <select value={inviteForm.team} onChange={e => setInviteForm(f => ({ ...f, team: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px" }}>
-                    {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                  <select value={inviteForm.teamId} onChange={e => setInviteForm(f => ({ ...f, teamId: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px" }}>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
-                <button onClick={handleInvite} style={{ width: "100%", background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, color: "white", border: "none", padding: "13px", borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: "pointer" }}>
-                  Send Invitation ✉️
+                <button onClick={handleInvite} disabled={inviteLoading} style={{ width: "100%", background: inviteLoading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, color: inviteLoading ? colors.muted : "white", border: "none", padding: "13px", borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: inviteLoading ? "default" : "pointer" }}>
+                  {inviteLoading ? "Sending..." : "Send Invitation ✉️"}
                 </button>
               </>
             )}
@@ -694,22 +713,71 @@ const AdminView = ({ observations, onInvite }) => {
 };
 
 // ============================================================
-// APP ROOT
+// APP ROOT — Real Supabase Auth
 // ============================================================
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [observations, setObservations] = useState(INITIAL_OBSERVATIONS);
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (obs) => setObservations(prev => [obs, ...prev]);
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) loadUserData(session.user.id);
+      else setLoading(false);
+    });
 
-  if (!user) return <LoginScreen onLogin={setUser} />;
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) loadUserData(session.user.id);
+      else { setProfile(null); setLoading(false); }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserData = async (userId) => {
+    setLoading(true);
+    const [profileRes, teamsRes, staffRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.from("teams").select("*").order("name"),
+      supabase.from("staff").select("*").order("name"),
+    ]);
+    if (profileRes.data) setProfile(profileRes.data);
+    if (teamsRes.data) setTeams(teamsRes.data);
+    if (staffRes.data) setStaff(staffRes.data);
+    setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    setSession(null);
+  };
+
+  if (loading) return <Spinner />;
+  if (!session) return <LoginScreen />;
+  if (!profile) return (
+    <div style={{ minHeight: "100vh", background: colors.light, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "white", borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px" }}>
+        <div style={{ fontSize: "40px", marginBottom: "16px" }}>⏳</div>
+        <h3 style={{ fontFamily: font, color: colors.text, margin: "0 0 8px" }}>Setting up your account</h3>
+        <p style={{ fontFamily: fontSans, color: colors.muted, fontSize: "13px" }}>Your profile is being configured by an administrator. Please check back shortly.</p>
+        <button onClick={handleLogout} style={{ marginTop: "16px", background: "none", border: `1px solid ${colors.border}`, padding: "8px 16px", borderRadius: "8px", fontFamily: fontSans, fontSize: "12px", cursor: "pointer", color: colors.muted }}>Sign Out</button>
+      </div>
+    </div>
+  );
 
   return (
     <div>
-      <SJHeader user={user} onLogout={() => setUser(null)} />
-      {user.role === "supervisor" && <SupervisorView user={user} observations={observations} onSubmit={handleSubmit} />}
-      {user.role === "manager" && <ManagerView user={user} observations={observations} />}
-      {user.role === "admin" && <AdminView observations={observations} onInvite={(inv) => console.log("Invite:", inv)} />}
+      <SJHeader user={session.user} profile={profile} onLogout={handleLogout} />
+      {profile.role === "supervisor" && <SupervisorView profile={profile} teams={teams} staff={staff} />}
+      {profile.role === "manager" && <ManagerView profile={profile} teams={teams} />}
+      {profile.role === "admin" && <AdminView profile={profile} teams={teams} staff={staff} />}
     </div>
   );
 }
