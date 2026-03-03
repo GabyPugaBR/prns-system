@@ -849,7 +849,12 @@ export default function App() {
       supabase.from("teams").select("*").order("name"),
       supabase.from("staff").select("*").order("name"),
     ]);
-
+    const handleLogout = async () => {
+      await supabase.auth.signOut();
+      setProfile(null);
+      setSession(null);
+      setIsNewUser(false);
+    };
     // If no profile exists, this is a new invited user
     if (!profileRes.data) {
       setIsNewUser(true);
