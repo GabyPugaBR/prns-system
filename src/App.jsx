@@ -824,7 +824,7 @@ export default function App() {
   const [teams, setTeams] = useState([]);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isNewUser, setIsNewUser] = useState(false); // ADD THIS
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -842,20 +842,14 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserData = async (user) => {  // NOTE: pass full user now
+  const loadUserData = async (user) => {
     setLoading(true);
     const [profileRes, teamsRes, staffRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("teams").select("*").order("name"),
       supabase.from("staff").select("*").order("name"),
     ]);
-    const handleLogout = async () => {
-      await supabase.auth.signOut();
-      setProfile(null);
-      setSession(null);
-      setIsNewUser(false);
-    };
-    // If no profile exists, this is a new invited user
+
     if (!profileRes.data) {
       setIsNewUser(true);
     } else {
@@ -868,12 +862,17 @@ export default function App() {
     setLoading(false);
   };
 
-  // ... handleLogout stays the same
+  // ✅ handleLogout lives HERE — outside loadUserData
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    setSession(null);
+    setIsNewUser(false);
+  };
 
   if (loading) return <Spinner />;
   if (!session) return <LoginScreen />;
 
-  // NEW: intercept invite flow
   if (isNewUser && session) return (
     <OnboardingScreen
       user={session.user}
@@ -881,7 +880,7 @@ export default function App() {
     />
   );
 
-  if (!profile) return <Spinner />; // fallback
+  if (!profile) return <Spinner />;
 
   return (
     <div>
