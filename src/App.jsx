@@ -736,7 +736,85 @@ const AdminView = ({ profile, teams, staff }) => {
     </div>
   );
 };
+const OnboardingScreen = ({ user, onComplete }) => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  const handleSetup = async () => {
+    if (!fullName.trim()) { setError("Please enter your name"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    setLoading(true); setError(null);
+
+    // Set their password
+    const { error: pwError } = await supabase.auth.updateUser({ password });
+    if (pwError) { setError(pwError.message); setLoading(false); return; }
+
+    // Create their profile using metadata from the invite
+    const meta = user.user_metadata;
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: user.id,
+      name: fullName,
+      role: meta.role || "supervisor",
+      team_id: meta.team_id || null,
+    });
+
+    if (profileError) { setError(profileError.message); setLoading(false); return; }
+    onComplete();
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(160deg, ${colors.sjDark} 0%, ${colors.sj} 40%, ${colors.teal} 100%)`,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px"
+    }}>
+      <div style={{ textAlign: "center", marginBottom: "28px" }}>
+        <div style={{ width: "64px", height: "64px", background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", margin: "0 auto 14px" }}>🏛️</div>
+        <h1 style={{ color: "white", fontFamily: font, fontSize: "20px", margin: "0 0 6px" }}>Welcome to the PRNS System</h1>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "13px", margin: 0 }}>Let's get your account set up</p>
+      </div>
+
+      <div style={{ background: "white", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        {error && (
+          <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {error}</p>
+          </div>
+        )}
+
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Full Name</label>
+          <input type="text" placeholder="First Last" value={fullName} onChange={e => setFullName(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Create Password</label>
+          <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{ fontFamily: fontSans, fontSize: "12px", fontWeight: "bold", color: colors.text, display: "block", marginBottom: "6px" }}>Confirm Password</label>
+          <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSetup()}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${colors.border}`, borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", boxSizing: "border-box" }} />
+        </div>
+
+        <button onClick={handleSetup} disabled={loading} style={{
+          width: "100%", background: loading ? colors.border : `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
+          color: loading ? colors.muted : "white", border: "none", padding: "13px",
+          borderRadius: "8px", fontFamily: fontSans, fontSize: "13px", fontWeight: "bold", cursor: loading ? "default" : "pointer",
+        }}>
+          {loading ? "Setting up..." : "Complete Setup →"}
+        </button>
+      </div>
+    </div>
+  );
+};
 // ============================================================
 // APP ROOT — Real Supabase Auth
 // ============================================================
@@ -746,56 +824,59 @@ export default function App() {
   const [teams, setTeams] = useState([]);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false); // ADD THIS
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) loadUserData(session.user.id);
+      if (session) loadUserData(session.user);
       else setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session) loadUserData(session.user.id);
+      if (session) loadUserData(session.user);
       else { setProfile(null); setLoading(false); }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserData = async (userId) => {
+  const loadUserData = async (user) => {  // NOTE: pass full user now
     setLoading(true);
     const [profileRes, teamsRes, staffRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("teams").select("*").order("name"),
       supabase.from("staff").select("*").order("name"),
     ]);
-    if (profileRes.data) setProfile(profileRes.data);
+
+    // If no profile exists, this is a new invited user
+    if (!profileRes.data) {
+      setIsNewUser(true);
+    } else {
+      setProfile(profileRes.data);
+      setIsNewUser(false);
+    }
+
     if (teamsRes.data) setTeams(teamsRes.data);
     if (staffRes.data) setStaff(staffRes.data);
     setLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    setSession(null);
-  };
+  // ... handleLogout stays the same
 
   if (loading) return <Spinner />;
   if (!session) return <LoginScreen />;
-  if (!profile) return (
-    <div style={{ minHeight: "100vh", background: colors.light, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "white", borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px" }}>
-        <div style={{ fontSize: "40px", marginBottom: "16px" }}>⏳</div>
-        <h3 style={{ fontFamily: font, color: colors.text, margin: "0 0 8px" }}>Setting up your account</h3>
-        <p style={{ fontFamily: fontSans, color: colors.muted, fontSize: "13px" }}>Your profile is being configured by an administrator. Please check back shortly.</p>
-        <button onClick={handleLogout} style={{ marginTop: "16px", background: "none", border: `1px solid ${colors.border}`, padding: "8px 16px", borderRadius: "8px", fontFamily: fontSans, fontSize: "12px", cursor: "pointer", color: colors.muted }}>Sign Out</button>
-      </div>
-    </div>
+
+  // NEW: intercept invite flow
+  if (isNewUser && session) return (
+    <OnboardingScreen
+      user={session.user}
+      onComplete={() => loadUserData(session.user)}
+    />
   );
+
+  if (!profile) return <Spinner />; // fallback
 
   return (
     <div>
