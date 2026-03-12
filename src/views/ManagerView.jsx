@@ -19,6 +19,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const availableStaff = staff.filter(s => s.team_id === selectedTeamId);
 
@@ -42,6 +43,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
+    setSubmitError(null);
     const { error } = await supabase
       .from("observations")
       .insert({
@@ -53,7 +55,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
         assessment: form.assessment,
         description: form.description,
       });
-    if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
+    if (error) { setSubmitError("Something went wrong. Please try again."); setLoading(false); return; }
         const selectedStaff = staff.find(s => s.id === form.staffId);
         const selectedTeam  = teams.find(t => t.id === selectedTeamId);
         setSubmitted({
@@ -235,6 +237,11 @@ const SubmitTab = ({ profile, teams, staff }) => {
             {loading ? "Submitting..." : "Submit Feedback"}
           </button>
         </div>
+        {submitError && (
+          <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginTop: "10px" }}>
+            <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {submitError}</p>
+          </div>
+        )}
       </div>
     </div>
   );

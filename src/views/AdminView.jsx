@@ -339,6 +339,7 @@ const AdminView = ({ teams, staff: initialStaff }) => {
   const [inviteForm, setInviteForm]         = useState({ email: "", role: "supervisor", teamId: teams[0]?.id || "" });
   const [inviteSent, setInviteSent]         = useState(false);
   const [inviteLoading, setInviteLoading]   = useState(false);
+  const [inviteError, setInviteError]       = useState(null);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -355,6 +356,7 @@ const AdminView = ({ teams, staff: initialStaff }) => {
   const handleInvite = async () => {
     if (!inviteForm.email) return;
     setInviteLoading(true);
+    setInviteError(null);
     const { data: { session } } = await supabase.auth.getSession();
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
@@ -370,7 +372,7 @@ const AdminView = ({ teams, staff: initialStaff }) => {
     );
     const result = await response.json();
     if (result.error) {
-      alert("Error sending invite: " + result.error);
+      setInviteError("Failed to send invitation. Please try again.");
     } else {
       setInviteSent(true);
       setTimeout(() => {
@@ -539,6 +541,7 @@ const AdminView = ({ teams, staff: initialStaff }) => {
                 }}>
                   {inviteLoading ? "Sending..." : "Send Invitation ✉️"}
                 </button>
+                {inviteError && <Toast msg={inviteError} ok={false} />}
               </>
             )}
           </div>

@@ -16,6 +16,7 @@ const SupervisorView = ({ profile, teams, staff, onLogout }) => {
   const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const myTeam         = teams.find(t => t.id === profile.team_id);
   const availableStaff = staff.filter(s => s.team_id === selectedTeamId);
@@ -41,6 +42,7 @@ const SupervisorView = ({ profile, teams, staff, onLogout }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
+    setSubmitError(null);
     const { data, error } = await supabase
       .from("observations")
       .insert({
@@ -54,7 +56,7 @@ const SupervisorView = ({ profile, teams, staff, onLogout }) => {
       })
       .select(`*, staff(name, team:teams(name))`)
       .single();
-    if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
+    if (error) { setSubmitError("Something went wrong. Please try again."); setLoading(false); return; }
     setSubmitted(data);
     setLoading(false);
   };
@@ -276,6 +278,11 @@ const SupervisorView = ({ profile, teams, staff, onLogout }) => {
               {loading ? "Submitting..." : "Submit Feedback"}
             </button>
           </div>
+          {submitError && (
+            <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: "8px", padding: "10px 14px", marginTop: "10px" }}>
+              <p style={{ fontFamily: fontSans, fontSize: "12px", color: colors.danger, margin: 0 }}>⚠️ {submitError}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
