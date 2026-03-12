@@ -63,6 +63,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
           assessment: form.assessment,
           description: form.description,
         });
+  };
 
   const handleClear = () => {
     setForm({ date: new Date().toISOString().split("T")[0], staffId: "", location: "", criteria: [], assessment: "", description: "" });
