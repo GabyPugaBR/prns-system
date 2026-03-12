@@ -74,6 +74,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    // For managers, seed their initial team access so read permissions are active immediately
+    if (role === "manager" && team_id && data.user?.id) {
+      await supabaseAdmin
+        .from("manager_team_access")
+        .insert({ manager_id: data.user.id, team_id });
+    }
+
     return new Response(
       JSON.stringify({ success: true, user: data }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
