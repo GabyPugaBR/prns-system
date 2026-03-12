@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import { colors, fontSans, font } from "../styles/theme";
 import { CRITERIA_OPTIONS } from "../constants/criteria";
 import Badge from "../components/shared/Badge";
-import FilterBar from "../components/shared/FilterBar";
+import Filterbar from "../components/shared/Filterbar";
 import TeamBadge from "../components/shared/TeamBadge";
 import Spinner from "../components/shared/Spinner";
 import useBreakpoint from "../hooks/useBreakpoint";
