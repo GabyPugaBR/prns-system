@@ -42,6 +42,10 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+console.log("user id:", user?.id);
+console.log("profile id:", profile.id);
+console.log("match:", user?.id === profile.id);
     const { data, error } = await supabase
       .from("observations")
       .insert({
