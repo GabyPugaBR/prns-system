@@ -3,10 +3,10 @@ import { supabase } from "../supabaseClient";
 import { colors, font, fontSans } from "../styles/theme";
 import { CRITERIA_OPTIONS } from "../constants/criteria";
 import Badge from "../components/shared/Badge";
-import useBreakpoint from "../hooks/useBreakpoint";
+import UseBreakpoint from "../hooks/UseBreakpoint";
 
 const SupervisorView = ({ profile, teams, staff, onLogout }) => {
-  const { isMobile } = useBreakpoint();
+  const { isMobile } = UseBreakpoint();
   const [teamMode, setTeamMode]             = useState("my");
   const [selectedTeamId, setSelectedTeamId] = useState(profile.team_id);
   const [form, setForm] = useState({

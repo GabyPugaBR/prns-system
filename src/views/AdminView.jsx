@@ -5,7 +5,7 @@ import Badge from "../components/shared/Badge";
 import FilterBar from "../components/shared/Filterbar";
 import TeamBadge from "../components/shared/TeamBadge";
 import Spinner from "../components/shared/Spinner";
-import useBreakpoint from "../hooks/useBreakpoint";
+import UseBreakpoint from "../hooks/UseBreakpoint";
 
 // ── Small reusable section card ─────────────────────────────
 const Section = ({ title, children }) => (
@@ -46,7 +46,7 @@ const Toast = ({ msg, ok }) => (
 
 // ── Role Management Tab ─────────────────────────────────────
 const RoleManagementTab = ({ teams, staffList, setStaffList }) => {
-  const { isMobile } = useBreakpoint();
+  const { isMobile } = UseBreakpoint();
 
   // Profiles state
   const [profiles, setProfiles] = useState([]);
@@ -330,7 +330,7 @@ const RoleManagementTab = ({ teams, staffList, setStaffList }) => {
 
 // ── Main AdminView ──────────────────────────────────────────
 const AdminView = ({ teams, staff: initialStaff }) => {
-  const { isMobile }                        = useBreakpoint();
+  const { isMobile }                        = UseBreakpoint();
   const [activeTab, setActiveTab]           = useState("overview");
   const [observations, setObservations]     = useState([]);
   const [loading, setLoading]               = useState(true);

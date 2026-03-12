@@ -6,11 +6,11 @@ import Badge from "../components/shared/Badge";
 import FilterBar from "../components/shared/Filterbar";
 import TeamBadge from "../components/shared/TeamBadge";
 import Spinner from "../components/shared/Spinner";
-import useBreakpoint from "../hooks/useBreakpoint";
+import UseBreakpoint from "../hooks/UseBreakpoint";
 
 // ── Submit Tab (mirrors SupervisorView form) ────────────────
 const SubmitTab = ({ profile, teams, staff }) => {
-  const { isMobile } = useBreakpoint();
+  const { isMobile } = UseBreakpoint();
   const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id || "");
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -239,7 +239,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
 const EMPTY_FILTERS = { staffName: "", team: "all", assessment: "all", dateFrom: "", dateTo: "" };
 
 const ObservationsTab = ({ teams }) => {
-  const { isMobile }                    = useBreakpoint();
+  const { isMobile }                    = UseBreakpoint();
   const [observations, setObservations] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [filters, setFilters]           = useState(EMPTY_FILTERS);
@@ -335,7 +335,7 @@ const ObservationsTab = ({ teams }) => {
 
 // ── Main ManagerView ────────────────────────────────────────
 const ManagerView = ({ profile, teams, staff }) => {
-  const { isMobile }      = useBreakpoint();
+  const { isMobile }      = UseBreakpoint();
   const [activeTab, setActiveTab] = useState("submit");
 
   const tabs = [
