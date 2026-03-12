@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { colors, font, fontSans } from "../../styles/theme";
 
-const ResetPasswordScreen = ({ onComplete }) => {
+const ResetpasswordScreen = ({ onComplete }) => {
   const [password, setPassword]   = useState("");
   const [confirm, setConfirm]     = useState("");
   const [loading, setLoading]     = useState(false);
@@ -98,4 +98,4 @@ const ResetPasswordScreen = ({ onComplete }) => {
   );
 };
 
-export default ResetPasswordScreen;
+export default ResetpasswordScreen;

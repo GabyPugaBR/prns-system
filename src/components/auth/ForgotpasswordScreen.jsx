@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { colors, font, fontSans } from "../../styles/theme";
 
-const ForgotPasswordScreen = ({ onBack }) => {
+const ForgotpasswordScreen = ({ onBack }) => {
   const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent]       = useState(false);
@@ -102,4 +102,4 @@ const ForgotPasswordScreen = ({ onBack }) => {
   );
 };
 
-export default ForgotPasswordScreen;
+export default ForgotpasswordScreen;
