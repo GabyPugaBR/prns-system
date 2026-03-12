@@ -24,8 +24,6 @@ const ResetpasswordScreen = ({ onComplete }) => {
 
     setSuccess(true);
     setLoading(false);
-    // Give user a moment to see the success message, then redirect
-    setTimeout(() => onComplete(), 2000);
   };
 
   return (
@@ -45,10 +43,22 @@ const ResetpasswordScreen = ({ onComplete }) => {
         {success ? (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: "48px", marginBottom: "16px" }}>✅</div>
-            <h2 style={{ fontFamily: font, color: colors.text, margin: "0 0 10px", fontSize: "18px" }}>Password Updated</h2>
-            <p style={{ fontFamily: fontSans, fontSize: "13px", color: colors.muted }}>
-              Redirecting you to the app...
+            <h2 style={{ fontFamily: font, color: colors.text, margin: "0 0 10px", fontSize: "18px" }}>Password Set Successfully</h2>
+            <p style={{ fontFamily: fontSans, fontSize: "13px", color: colors.muted, marginBottom: "24px" }}>
+              Your password has been updated. Please sign in with your new password.
             </p>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              style={{
+                width: "100%",
+                background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`,
+                color: "white", border: "none", padding: "13px",
+                borderRadius: "8px", fontFamily: fontSans, fontSize: "13px",
+                fontWeight: "bold", cursor: "pointer",
+              }}
+            >
+              Return to Sign In
+            </button>
           </div>
         ) : (
           <>
