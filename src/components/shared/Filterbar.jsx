@@ -1,5 +1,5 @@
 import { colors, fontSans } from "../../styles/theme";
-import useBreakpoint from "../../hooks/useBreakpoint";
+import useBreakpoint from "../../hooks/UseBreakpoint";
 
 const FilterBar = ({ teams, filters, onChange, resultCount }) => {
   const { isMobile } = useBreakpoint();
