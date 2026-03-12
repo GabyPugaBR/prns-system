@@ -1,8 +1,8 @@
 export const colors = {
-  sj: "#1B6CA8",
-  sjDark: "#0D4F7C",
-  teal: "#2E8B8B",
-  tealLight: "#E8F5F5",
+  sj: "#2D8080",
+  sjDark: "#1A5C5C",
+  teal: "#3D9999",
+  tealLight: "#E6F4F4",
   green: "#4A7C59",
   gold: "#C9A84C",
   light: "#F4F7F9",
