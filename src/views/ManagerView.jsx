@@ -42,7 +42,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("observations")
       .insert({
         supervisor_id: profile.id,
@@ -52,11 +52,19 @@ const SubmitTab = ({ profile, teams, staff }) => {
         criteria: form.criteria,
         assessment: form.assessment,
         description: form.description,
-      })
-      .select(`*, staff(name, team:teams(name))`)
-      .single();
+      });
     if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
-    setSubmitted(data);
+
+    // Build success object from form data — no SELECT needed
+    const selectedStaff = staff.find(s => s.id === form.staffId);
+    const selectedTeam  = teams.find(t => t.id === selectedTeamId);
+    setSubmitted({
+      staff: { name: selectedStaff?.name, team: { name: selectedTeam?.name } },
+      observation_date: form.date,
+      location: form.location,
+      assessment: form.assessment,
+      description: form.description,
+    });
     setLoading(false);
   };
 
