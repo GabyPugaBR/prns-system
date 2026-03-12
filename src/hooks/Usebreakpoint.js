@@ -7,7 +7,7 @@ const getBreakpoint = (width) => ({
   width,
 });
 
-const useBreakpoint = () => {
+const UseBreakpoint = () => {
   const [bp, setBp] = useState(() => getBreakpoint(window.innerWidth));
 
   useEffect(() => {
@@ -19,4 +19,4 @@ const useBreakpoint = () => {
   return bp;
 };
 
-export default useBreakpoint;
+export default UseBreakpoint;
