@@ -52,12 +52,13 @@ export default function App() {
       supabase.from("staff").select("*").order("name"),
     ]);
 
-    if (!profileRes.data || !profileRes.data.name) {
-      setIsNewUser(true);
-    } else {
-      setProfile(profileRes.data);
-      setIsNewUser(false);
-    }
+    const isGenuinelyNew = profileRes.error?.code === "PGRST116" || !profileRes.data;
+      if (isGenuinelyNew || !profileRes.data.name) {
+        setIsNewUser(true);
+      } else {
+        setProfile(profileRes.data);
+        setIsNewUser(false);
+      }
 
     if (teamsRes.data) setTeams(teamsRes.data);
     if (staffRes.data) setStaff(staffRes.data);
