@@ -42,11 +42,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-console.log("user id:", user?.id);
-console.log("profile id:", profile.id);
-console.log("match:", user?.id === profile.id);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("observations")
       .insert({
         supervisor_id: profile.id,
@@ -56,13 +52,17 @@ console.log("match:", user?.id === profile.id);
         criteria: form.criteria,
         assessment: form.assessment,
         description: form.description,
-      })
-      .select(`*, staff(name, team:teams(name))`)
-      .single();
+      });
     if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
-    setSubmitted(data);
-    setLoading(false);
-  };
+        const selectedStaff = staff.find(s => s.id === form.staffId);
+        const selectedTeam  = teams.find(t => t.id === selectedTeamId);
+        setSubmitted({
+          staff: { name: selectedStaff?.name, team: { name: selectedTeam?.name } },
+          observation_date: form.date,
+          location: form.location,
+          assessment: form.assessment,
+          description: form.description,
+        });
 
   const handleClear = () => {
     setForm({ date: new Date().toISOString().split("T")[0], staffId: "", location: "", criteria: [], assessment: "", description: "" });
