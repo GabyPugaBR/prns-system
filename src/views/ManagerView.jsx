@@ -6,7 +6,7 @@ import Badge from "../components/shared/Badge";
 import FilterBar from "../components/shared/Filterbar";
 import TeamBadge from "../components/shared/TeamBadge";
 import Spinner from "../components/shared/Spinner";
-import useBreakpoint from "../hooks/UseBreakpoint";
+import useBreakpoint from "../hooks/useBreakpoint";
 
 // ── Submit Tab (mirrors SupervisorView form) ────────────────
 const SubmitTab = ({ profile, teams, staff }) => {

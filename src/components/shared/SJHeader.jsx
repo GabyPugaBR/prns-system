@@ -1,5 +1,5 @@
 import { colors, font, fontSans } from "../../styles/theme";
-import useBreakpoint from "../../hooks/UseBreakpoint";
+import useBreakpoint from "../../hooks/useBreakpoint";
 
 const SJHeader = ({ profile, onLogout }) => {
   const { isMobile } = useBreakpoint();

@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import { colors, font, fontSans } from "../styles/theme";
 import { CRITERIA_OPTIONS } from "../constants/criteria";
 import Badge from "../components/shared/Badge";
-import useBreakpoint from "../hooks/UseBreakpoint";
+import useBreakpoint from "../hooks/useBreakpoint";
 
 const SupervisorView = ({ profile, teams, staff, onLogout }) => {
   const { isMobile } = useBreakpoint();
