@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import { colors, fontSans, font } from "../styles/theme";
 import { CRITERIA_OPTIONS } from "../constants/criteria";
 import Badge from "../components/shared/Badge";
-import FilterBar from "../components/shared/Filterbar";
+import FilterBar from "../components/shared/FilterBar";
 import TeamBadge from "../components/shared/TeamBadge";
 import Spinner from "../components/shared/Spinner";
 import useBreakpoint from "../hooks/useBreakpoint";
@@ -42,7 +42,7 @@ const SubmitTab = ({ profile, teams, staff }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("observations")
       .insert({
         supervisor_id: profile.id,
@@ -52,19 +52,11 @@ const SubmitTab = ({ profile, teams, staff }) => {
         criteria: form.criteria,
         assessment: form.assessment,
         description: form.description,
-      });
+      })
+      .select(`*, staff(name, team:teams(name))`)
+      .single();
     if (error) { alert("Error submitting: " + error.message); setLoading(false); return; }
-
-    // Build success object from form data — no SELECT needed
-    const selectedStaff = staff.find(s => s.id === form.staffId);
-    const selectedTeam  = teams.find(t => t.id === selectedTeamId);
-    setSubmitted({
-      staff: { name: selectedStaff?.name, team: { name: selectedTeam?.name } },
-      observation_date: form.date,
-      location: form.location,
-      assessment: form.assessment,
-      description: form.description,
-    });
+    setSubmitted(data);
     setLoading(false);
   };
 
@@ -344,7 +336,19 @@ const ObservationsTab = ({ teams }) => {
 // ── Main ManagerView ────────────────────────────────────────
 const ManagerView = ({ profile, teams, staff }) => {
   const { isMobile }      = useBreakpoint();
-  const [activeTab, setActiveTab] = useState("submit");
+  const [activeTab, setActiveTab]   = useState("submit");
+  const [assignedTeams, setAssignedTeams] = useState([]);
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      const { data } = await supabase
+        .from("manager_team_access")
+        .select("team:teams(name)")
+        .eq("manager_id", profile.id);
+      setAssignedTeams((data || []).map(r => r.team.name));
+    };
+    fetchTeams();
+  }, [profile.id]);
 
   const tabs = [
     { id: "submit",       label: isMobile ? "📝" : "📝 Submit" },
@@ -356,10 +360,21 @@ const ManagerView = ({ profile, teams, staff }) => {
       <div style={{ maxWidth: "960px", margin: "0 auto", padding: isMobile ? "16px 12px" : "24px 16px" }}>
 
         {/* Welcome banner */}
-        <div style={{ background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, borderRadius: "12px", padding: "16px 20px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+        <div style={{ background: `linear-gradient(135deg, ${colors.sjDark}, ${colors.sj})`, borderRadius: "12px", padding: "16px 20px", marginBottom: "16px" }}>
           <div>
-            <h2 style={{ color: "white", fontFamily: font, margin: 0, fontSize: isMobile ? "16px" : "18px" }}>Welcome, {profile.name}!</h2>
-            <p style={{ color: "rgba(255,255,255,0.8)", fontFamily: fontSans, fontSize: "12px", margin: 0 }}>Manager</p>
+            <h2 style={{ color: "white", fontFamily: font, margin: "0 0 4px", fontSize: isMobile ? "16px" : "18px" }}>Welcome, {profile.name}!</h2>
+            <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: fontSans, fontSize: "11px", margin: "0 0 8px" }}>MANAGER</p>
+            {assignedTeams.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {assignedTeams.map(name => (
+                  <span key={name} style={{
+                    background: "rgba(255,255,255,0.2)", color: "white",
+                    fontFamily: fontSans, fontSize: "11px", fontWeight: "bold",
+                    padding: "3px 10px", borderRadius: "20px",
+                  }}>{name}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
