@@ -144,7 +144,7 @@ export default function App() {
   return (
     <div>
       <SJHeader profile={profile} onLogout={handleLogout} />
-      {profile.role === "supervisor" && <SupervisorView profile={profile} teams={teams} staff={staff} />}
+      {profile.role === "supervisor" && <SupervisorView profile={profile} teams={teams} staff={staff} onLogout={handleLogout} />}
       {profile.role === "manager"    && <ManagerView    profile={profile} teams={teams} staff={staff} />}
       {profile.role === "admin"      && <AdminView      profile={profile} teams={teams} staff={staff} />}
     </div>
