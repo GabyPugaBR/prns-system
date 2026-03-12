@@ -5,8 +5,8 @@ import Spinner              from "./components/shared/Spinner";
 import SJHeader             from "./components/shared/SJHeader";
 import LoginScreen          from "./components/auth/LoginScreen";
 import OnboardingScreen     from "./components/auth/OnboardingScreen";
-import ForgotPasswordScreen from "./components/auth/ForgotpasswordScreen";
-import ResetPasswordScreen  from "./components/auth/ResetpasswordScreen";
+import ForgotpasswordScreen from "./components/auth/ForgotpasswordScreen";
+import ResetpasswordScreen  from "./components/auth/ResetpasswordScreen";
 import SupervisorView       from "./views/SupervisorView";
 import ManagerView          from "./views/ManagerView";
 import AdminView            from "./views/AdminView";
@@ -123,14 +123,14 @@ export default function App() {
 
   // Password reset flow (user clicked email link)
   if (isResetting) return (
-    <ResetPasswordScreen onComplete={() => {
+    <ResetpasswordScreen onComplete={() => {
       setIsResetting(false);
       if (session) loadUserData(session.user);
     }} />
   );
 
   if (!session) {
-    if (showForgot) return <ForgotPasswordScreen onBack={() => setShowForgot(false)} />;
+    if (showForgot) return <ForgotpasswordScreen onBack={() => setShowForgot(false)} />;
     return <LoginScreen onForgotPassword={() => setShowForgot(true)} />;
   }
 
